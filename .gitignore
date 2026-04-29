@@ -1,0 +1,21 @@
+# Terraform state and secrets — never commit these
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars       # contains DB password
+
+# AWS credentials and SSH keys
+*.pem
+*.csv
+ecommerce-admin*
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db

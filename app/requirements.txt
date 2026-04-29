@@ -1,0 +1,9 @@
+# Application dependencies installed on each EC2 instance via user_data.
+# Pin exact versions to ensure reproducible deployments.
+
+fastapi==0.109.0       # Web framework
+uvicorn==0.27.0        # ASGI server
+pymysql==1.1.0         # MySQL driver for RDS connectivity
+boto3==1.34.0          # AWS SDK — used for DynamoDB operations
+cryptography==41.0.7   # Required by PyMySQL for SSL/auth support
+pydantic==2.5.0        # Data validation (used by FastAPI models)
