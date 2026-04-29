@@ -6,21 +6,55 @@ A production-style e-commerce backend deployed on AWS, built to demonstrate clou
 
 ## Architecture Overview
 
+```mermaid
+flowchart TD
+    Internet(["🌐 Internet\nUser traffic · HTTPS"])
+
+    subgraph VPC["VPC — 10.0.0.0/16 · us-east-1"]
+
+        subgraph PUB["Public subnets"]
+            direction LR
+            subgraph PUB_A["us-east-1a"]
+                ALB["**Application Load Balancer**\nHTTP/HTTPS · cross-zone"]
+            end
+            subgraph PUB_B["us-east-1b"]
+                NAT["**NAT Gateway**\nOutbound internet · Elastic IP"]
+            end
+        end
+
+        subgraph PRIV["Private subnets"]
+            direction LR
+            subgraph PRIV_A["us-east-1a"]
+                EC2A["**EC2 t3.micro**\nFastAPI + Uvicorn"]
+            end
+            subgraph PRIV_B["us-east-1b"]
+                EC2B["**EC2 t3.micro**\nFastAPI + Uvicorn"]
+            end
+        end
+
+        subgraph DATA["Data tier"]
+            direction LR
+            RDS[("**RDS MySQL 8.0**\nMulti-AZ · Products catalog")]
+            DDB[("**DynamoDB**\nOn-demand · GSI · Orders table")]
+        end
+
+    end
+
+    Internet -->|"HTTPS"| ALB
+    ALB --> EC2A
+    ALB --> EC2B
+    EC2A --> RDS
+    EC2A -.-> DDB
+    EC2B --> DDB
+    EC2B -.-> RDS
+    EC2A -.->|"outbound"| NAT
+    EC2B -.->|"outbound"| NAT
+    NAT -.->|"outbound"| Internet
 ```
-Internet
-    │
-    ▼
-Application Load Balancer  (public subnets, us-east-1a / 1b)
-    │
-    ├──► EC2 App Server 1  (private subnet, us-east-1a)
-    │         │
-    └──► EC2 App Server 2  (private subnet, us-east-1b)
-              │
-    ┌─────────┴──────────┐
-    ▼                    ▼
-RDS MySQL (Multi-AZ)   DynamoDB
-  Products table         Orders table
-```
+
+> Solid arrows = primary request path · Dashed arrows = outbound egress (NAT) or cross-zone reads
+>
+> 📐 Full editable diagram: [`docs/aws-ecommerce-architecture.drawio`](docs/aws-ecommerce-architecture.drawio)
 
 Private EC2 instances reach the internet (for OS updates / pip installs) via a NAT Gateway placed in a public subnet.
 
