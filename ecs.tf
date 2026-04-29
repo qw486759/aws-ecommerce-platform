@@ -125,7 +125,11 @@ resource "aws_ecs_task_definition" "app" {
 
     environment = [
       { name = "AWS_REGION",     value = var.aws_region },
-      { name = "DYNAMODB_TABLE", value = aws_dynamodb_table.orders.name }
+      { name = "DYNAMO_TABLE", value = aws_dynamodb_table.orders.name },
+      { name = "DB_HOST", value = "ecommerce-mysql.ckb04yy26c43.us-east-1.rds.amazonaws.com" },
+      { name = "DB_PORT", value = "3306" },
+      { name = "DB_NAME", value = "ecommerce" },
+      { name = "DB_USER", value = "admin" }
     ]
 
     secrets = [
@@ -210,4 +214,29 @@ resource "aws_ecs_service" "app" {
   tags = { Name = "ecommerce-service" }
 }
 
-resource "aws_app
+resource "aws_appautoscaling_target" "ecs" {
+  max_capacity       = 4
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "cpu" {
+  name               = "ecommerce-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+data "aws_caller_identity" "current" {}
