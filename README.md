@@ -129,7 +129,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 
 Interactive API docs available at `http://<ALB_DNS>/docs` after deployment.
 
-API documentation preview: [E-Commerce API - Swagger UI](docs/swagger-ui.pdf)
+API documentation preview: [E-Commerce API : Swagger UI](docs/swagger-ui.pdf)
 
 ---
 
