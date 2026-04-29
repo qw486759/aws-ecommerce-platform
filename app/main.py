@@ -14,7 +14,7 @@ import pymysql
 import os
 import uuid
 
-app = FastAPI(title="E-Commerce API", version="1.0.0")
+app = FastAPI(title="E-Commerce API", version="1.0.")
 
 # ─── Configuration ─────────────────────────────────────
 # Environment variables injected by EC2 user_data via systemd service
