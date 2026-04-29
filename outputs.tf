@@ -1,51 +1,67 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# outputs.tf — Terraform output values
-#
-# These are printed after every `terraform apply` so you can quickly find
-# the key identifiers without opening the AWS Console.
-# ─────────────────────────────────────────────────────────────────────────────
-
-output "vpc_id" {
-  description = "ID of the existing VPC"
-  value       = data.aws_vpc.main.id
+resource "aws_eip" "nat" {
+  domain = "vpc"
+  tags   = { Name = "ecommerce-nat-eip" }
 }
 
-output "public_subnet_ids" {
-  description = "IDs of the two public subnets (ALB, NAT Gateway)"
-  value       = data.aws_subnets.public.ids
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = data.aws_subnets.public.ids[0]
+  tags          = { Name = "ecommerce-nat-gw" }
 }
 
-output "private_subnet_ids" {
-  description = "IDs of the two private subnets (EC2, RDS)"
-  value       = data.aws_subnets.private.ids
+resource "aws_route_table" "private" {
+  vpc_id = data.aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
+
+  tags = { Name = "ecommerce-private-rt" }
 }
 
-output "dynamodb_table_name" {
-  description = "Name of the DynamoDB orders table"
-  value       = aws_dynamodb_table.orders.name
+resource "aws_route_table_association" "private" {
+  count          = length(data.aws_subnets.private.ids)
+  subnet_id      = data.aws_subnets.private.ids[count.index]
+  route_table_id = aws_route_table.private.id
 }
 
-output "alb_sg_id" {
-  description = "Security Group ID attached to the Application Load Balancer"
-  value       = aws_security_group.alb.id
+resource "aws_lb" "main" {
+  name               = "ecommerce-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = data.aws_subnets.public.ids
+
+  tags = { Name = "ecommerce-alb" }
 }
 
-output "ec2_sg_id" {
-  description = "Security Group ID attached to the EC2 application instances"
-  value       = aws_security_group.ec2.id
+resource "aws_lb_target_group" "app" {
+  name        = "ecommerce-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200"
+  }
+
+  tags = { Name = "ecommerce-tg" }
 }
 
-output "aurora_sg_id" {
-  description = "Security Group ID attached to the RDS instance"
-  value       = aws_security_group.aurora.id
-}
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
 
-output "alb_dns_name" {
-  description = "Public DNS name of the ALB — use this as your API base URL"
-  value       = aws_lb.main.dns_name
-}
-
-output "db_endpoint" {
-  description = "RDS MySQL connection endpoint (host:port)"
-  value       = aws_db_instance.mysql.endpoint
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
 }
