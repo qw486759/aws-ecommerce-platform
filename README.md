@@ -132,6 +132,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 | GET | `/orders/{user_id}` | Get orders by user | DynamoDB GSI |
 
 Interactive API docs available at `http://<ALB_DNS>/docs` after deployment.
+API documentation preview: [E-Commerce API - Swagger UI](docs/E-Commerce_API_-_Swagger_UI.pdf)
 
 ---
 
