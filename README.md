@@ -1,4 +1,4 @@
-﻿# AWS Cloud E-Commerce Platform
+# AWS Cloud E-Commerce Platform
 
 A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, containerization, CI/CD pipeline design, and infrastructure-as-code. Every architectural decision is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md).
 
