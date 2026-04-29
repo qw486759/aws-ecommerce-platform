@@ -1,6 +1,6 @@
 # AWS Cloud E-Commerce Platform
 
-A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, Infrastructure as Code, and load-tested API performance.
+A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, containerization, CI/CD pipeline design, and infrastructure-as-code. Every architectural decision is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md).
 
 ---
 
@@ -8,14 +8,14 @@ A production-style e-commerce backend deployed on AWS, built to demonstrate clou
 
 ```mermaid
 flowchart TD
-    Internet(["🌐 Internet\nUser traffic · HTTPS"])
+    Internet(["🌐 Internet\nUser traffic · HTTP"])
 
     subgraph VPC["VPC — 10.0.0.0/16 · us-east-1"]
 
         subgraph PUB["Public subnets"]
             direction LR
             subgraph PUB_A["us-east-1a"]
-                ALB["**Application Load Balancer**\nHTTP/HTTPS · cross-zone"]
+                ALB["**Application Load Balancer**\nHTTP · cross-zone"]
             end
             subgraph PUB_B["us-east-1b"]
                 NAT["**NAT Gateway**\nOutbound internet · Elastic IP"]
@@ -25,10 +25,10 @@ flowchart TD
         subgraph PRIV["Private subnets"]
             direction LR
             subgraph PRIV_A["us-east-1a"]
-                EC2A["**EC2 t3.micro**\nFastAPI + Uvicorn"]
+                FARGATE_A["**ECS Fargate Task**\nFastAPI + Uvicorn\nDocker container"]
             end
             subgraph PRIV_B["us-east-1b"]
-                EC2B["**EC2 t3.micro**\nFastAPI + Uvicorn"]
+                FARGATE_B["**ECS Fargate Task**\nFastAPI + Uvicorn\nDocker container"]
             end
         end
 
@@ -40,38 +40,82 @@ flowchart TD
 
     end
 
-    Internet -->|"HTTPS"| ALB
-    ALB --> EC2A
-    ALB --> EC2B
-    EC2A --> RDS
-    EC2A -.-> DDB
-    EC2B --> DDB
-    EC2B -.-> RDS
-    EC2A -.->|"outbound"| NAT
-    EC2B -.->|"outbound"| NAT
+    ECR["**Amazon ECR**\nDocker image registry"]
+    GHA["**GitHub Actions**\nCI/CD pipeline"]
+
+    GHA -->|"docker push"| ECR
+    ECR -.->|"image pull"| FARGATE_A
+    ECR -.->|"image pull"| FARGATE_B
+    Internet -->|"HTTP"| ALB
+    ALB --> FARGATE_A
+    ALB --> FARGATE_B
+    FARGATE_A --> RDS
+    FARGATE_A -.-> DDB
+    FARGATE_B --> DDB
+    FARGATE_B -.-> RDS
+    FARGATE_A -.->|"outbound"| NAT
+    FARGATE_B -.->|"outbound"| NAT
     NAT -.->|"outbound"| Internet
 ```
 
-> Solid arrows = primary request path · Dashed arrows = outbound egress (NAT) or cross-zone reads
+> Solid arrows = primary request path · Dashed arrows = outbound egress (NAT), cross-zone reads, or image pulls
 >
 > 📐 Full editable diagram: [`docs/aws-ecommerce-architecture.drawio`](docs/aws-ecommerce-architecture.drawio)
 
-Private EC2 instances reach the internet (for OS updates / pip installs) via a NAT Gateway placed in a public subnet.
+ECS Fargate tasks run in private subnets and are only reachable through the ALB. Container images are stored in Amazon ECR and deployed automatically via GitHub Actions on every push to `main`.
+
+---
+
+## CI/CD Pipeline
+
+### Default: Single Environment (push to main)
+
+```
+Developer pushes to main branch
+    │
+    ▼
+GitHub Actions: deploy.yml
+    ├── Run Tests (pytest)
+    └── Build and Deploy to ECS
+          ├── docker build
+          ├── docker push → ECR
+          └── ECS rolling deployment → production
+```
+
+### Optional: Dual Environment with Approval Gate (push to staging)
+
+```
+Developer pushes to staging branch
+    │
+    ▼
+GitHub Actions: deploy-staging.yml
+    ├── Run Tests (pytest)
+    ├── Build and Push → ECR
+    ├── Auto deploy → ECS staging
+    ├── Manual approval gate (GitHub Environment protection)
+    └── Auto deploy → ECS production (after approval)
+```
+
+See [docs/environments.md](docs/environments.md) for how to activate the dual-environment workflow.
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology | Purpose |
-|---|---|---|
+|-------|-----------|---------|
 | Infrastructure | Terraform | All AWS resources managed as code |
 | Network | VPC, public/private subnets, NAT Gateway | Network isolation |
-| Compute | EC2 t3.micro × 2 | Application servers |
+| Compute | ECS Fargate × 2 tasks | Serverless containers, no OS management |
+| Container Registry | Amazon ECR | Docker image storage with lifecycle policies |
+| CI/CD | GitHub Actions | Automated test, build, and deploy pipeline |
 | Load Balancer | Application Load Balancer | Traffic distribution, health checks |
-| Relational DB | RDS MySQL 8.0 Multi-AZ | Product catalogue |
-| NoSQL DB | DynamoDB (on-demand) | Order storage |
+| Relational DB | RDS MySQL 8.0 Multi-AZ | Product catalogue with ACID transactions |
+| NoSQL DB | DynamoDB (on-demand) | Order storage with GSI |
 | API | FastAPI + Uvicorn | REST endpoints |
-| IAM | EC2 Instance Profile | Least-privilege access to DynamoDB/SSM |
+| Secrets | AWS SSM Parameter Store | DB credentials injected at runtime |
+| Monitoring | CloudWatch Logs + Auto Scaling | Container logs, CPU-based scaling (2–4 tasks) |
+| IAM | ECS Task Role + Execution Role | Least-privilege access |
 | Load Testing | Locust | Performance validation |
 
 ---
@@ -79,7 +123,7 @@ Private EC2 instances reach the internet (for OS updates / pip installs) via a N
 ## API Endpoints
 
 | Method | Path | Description | Storage |
-|---|---|---|---|
+|--------|------|-------------|---------|
 | GET | `/health` | ALB health check | — |
 | GET | `/products` | List all products | RDS MySQL |
 | POST | `/products` | Create a product | RDS MySQL |
@@ -91,19 +135,24 @@ Interactive API docs available at `http://<ALB_DNS>/docs` after deployment.
 
 ---
 
-## Design Decisions
+## Architecture Decisions
+
+Full rationale is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md):
+
+**Why ECS Fargate instead of EC2?**
+Fargate eliminates OS management overhead and integrates cleanly with ECR and GitHub Actions. A `git push` triggers a full rolling deployment without SSH, CodeDeploy, or manual restarts. See ADR-001.
+
+**Why two CI/CD strategies?**
+Single-environment deployment suits small teams and fast iteration. Dual-environment with an approval gate suits production workloads with real users or compliance requirements. Both are maintained in the repo so clients can choose based on their needs. See ADR-002.
 
 **Why RDS MySQL with Multi-AZ?**
-Product data is relational and benefits from ACID transactions. Multi-AZ provides automatic failover to a standby replica in a second Availability Zone, giving ~99.95% availability with zero manual intervention.
+Product data is relational and benefits from ACID transactions. Multi-AZ provides automatic failover to a standby replica in a second Availability Zone, giving ~99.95% availability with zero manual intervention. See ADR-003.
 
 **Why DynamoDB for orders?**
-Orders are write-heavy and have a flexible schema (each order can contain a variable number of items). DynamoDB's on-demand billing means no idle cost, and it scales to millions of writes per second without capacity planning.
+Orders are write-heavy and have a flexible schema (each order can contain a variable number of items). DynamoDB's on-demand billing means no idle cost, and it scales to millions of writes per second without capacity planning. See ADR-003.
 
-**Why a private subnet for EC2 and RDS?**
-The principle of least privilege. Neither the application servers nor the database should be directly reachable from the internet. All inbound traffic flows through the ALB and is filtered by Security Groups.
-
-**Why Terraform?**
-All 21 resources can be created with `terraform apply` and destroyed with `terraform destroy`. This makes cost control trivial — spin up for a demo, destroy immediately after.
+**Why SSM Parameter Store for secrets?**
+DB credentials are encrypted at rest and injected into containers at startup via the ECS task execution role. Nothing sensitive is hardcoded in task definitions or committed to the repository. See ADR-004.
 
 ---
 
@@ -112,7 +161,7 @@ All 21 resources can be created with `terraform apply` and destroyed with `terra
 50 concurrent users, ~3 minutes duration.
 
 | Metric | Value |
-|---|---|
+|--------|-------|
 | Total requests | 3,315 |
 | Requests/sec (RPS) | ~22 |
 | Failure rate | **0%** |
@@ -125,22 +174,32 @@ All 21 resources can be created with `terraform apply` and destroyed with `terra
 ## Project Structure
 
 ```
-ecommerce-aws/
+aws-ecommerce-platform/
 ├── app/
-│   ├── main.py              # FastAPI application
-│   └── requirements.txt     # Python dependencies
+│   ├── main.py                    # FastAPI application
+│   └── requirements.txt           # Python dependencies
 ├── tests/
-│   ├── test_api.py          # Functional smoke tests
-│   └── locustfile.py        # Locust load test
-├── main.tf                  # Terraform provider + VPC data sources
-├── variables.tf             # Input variable declarations
-├── outputs.tf               # Output values (ALB DNS, DB endpoint, etc.)
-├── aurora.tf                # RDS MySQL instance + subnet group
-├── compute.tf               # EC2, ALB, NAT Gateway, IAM role
-├── dynamodb.tf              # DynamoDB orders table + GSI
-├── security_groups.tf       # Three-tier security group model
-├── terraform.tfvars.example # Template — copy to terraform.tfvars
-└── .gitignore               # Excludes secrets and state files
+│   ├── test_api.py                # Functional smoke tests
+│   └── locustfile.py              # Locust load test
+├── docs/
+│   ├── architecture-decisions.md  # ADR — why each decision was made
+│   └── environments.md            # How to switch between environments
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml             # Default: push to main → production
+│       └── deploy-staging.yml     # Optional: staging → approval → production
+├── Dockerfile                     # Multi-stage build
+├── main.tf                        # Terraform provider + VPC data sources
+├── variables.tf                   # Input variable declarations
+├── outputs.tf                     # Output values (ALB DNS, ECR URL, etc.)
+├── aurora.tf                      # RDS MySQL instance + subnet group
+├── compute.tf                     # ALB, NAT Gateway
+├── ecs.tf                         # ECS Fargate — cluster, service, task, ECR, IAM
+├── ecs-staging.tf                 # ECS Fargate — staging environment
+├── dynamodb.tf                    # DynamoDB orders table + GSI
+├── security_group.tf              # Three-tier security group model
+├── terraform.tfvars.example       # Template — copy to terraform.tfvars
+└── .gitignore                     # Excludes secrets and state files
 ```
 
 ---
@@ -149,9 +208,9 @@ ecommerce-aws/
 
 - AWS account with IAM user credentials configured (`aws configure`)
 - Terraform >= 1.0
+- Docker Desktop
 - Python >= 3.8 (for local testing)
-- An EC2 Key Pair named `ecommerce-key` in `us-east-1`
-- A VPC with public and private subnets tagged `ecommerce-vpc-vpc`
+- A VPC with public and private subnets in `us-east-1`
 
 ---
 
@@ -159,54 +218,83 @@ ecommerce-aws/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/ecommerce-aws.git
-cd ecommerce-aws
+git clone https://github.com/qw486759/aws-ecommerce-platform.git
+cd aws-ecommerce-platform
 
 # 2. Create your variable file
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars and set db_password
 
-# 3. Initialise Terraform
+# 3. Store DB password in SSM Parameter Store
+aws ssm put-parameter \
+  --name "/ecommerce/db_password" \
+  --value "your-db-password" \
+  --type SecureString \
+  --region us-east-1
+
+# 4. Initialize Terraform
 terraform init
 
-# 4. Preview changes
+# 5. Preview changes
 terraform plan
 
-# 5. Deploy (takes ~10–15 minutes — RDS Multi-AZ is the slowest step)
+# 6. Deploy (takes ~15 minutes — RDS Multi-AZ is the slowest step)
 terraform apply
 
-# 6. Test the API
-pip install requests locust
-python tests/test_api.py
+# 7. Push the first Docker image to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin \
+  <account-id>.dkr.ecr.us-east-1.amazonaws.com
 
-# 7. Run load test
-locust -f tests/locustfile.py --host=http://<ALB_DNS_from_output>
-# Open http://localhost:8089
+docker build -t ecommerce-app .
+docker tag ecommerce-app:latest \
+  <account-id>.dkr.ecr.us-east-1.amazonaws.com/ecommerce-app:latest
+docker push \
+  <account-id>.dkr.ecr.us-east-1.amazonaws.com/ecommerce-app:latest
 
-# 8. Destroy all resources when done
+# 8. Test the API
+curl http://<ALB_DNS_from_output>/health
+curl http://<ALB_DNS_from_output>/products
+
+# 9. Destroy all resources when done
 terraform destroy
 ```
+
+After the first deployment, all subsequent code changes are deployed automatically via GitHub Actions on every push to `main`.
+
+---
+
+## GitHub Actions Setup
+
+Add the following secrets in your repo under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `AWS_ACCESS_KEY_ID` | IAM user access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
 
 ---
 
 ## Cost Estimate (demo run)
 
 | Resource | Cost |
-|---|---|
+|----------|------|
 | NAT Gateway | ~$0.045/hr |
 | RDS MySQL Multi-AZ (db.t3.micro) | ~$0.034/hr |
-| EC2 t3.micro × 2 | ~$0.021/hr |
+| ECS Fargate × 2 tasks | ~$0.012/hr |
 | ALB | ~$0.018/hr |
 | DynamoDB (on-demand) | ~$0.00 idle |
-| **Total** | **~$3–4/day** |
+| **Total (single environment)** | **~$2.5/day** |
+| **Total (dual environment)** | **~$3.8/day** |
 
-A typical demo run (deploy → test → destroy in 2–3 hours) costs less than **$1 USD**.
+A typical demo run (deploy → test → destroy in 2–3 hours) costs under **$1 USD**.
 
 ---
 
 ## Security Notes
 
-- `terraform.tfvars` (contains DB password) is git-ignored — never commit it.
-- `ecommerce-key.pem` (SSH private key) is git-ignored.
-- RDS is not publicly accessible; only EC2 instances in the same VPC can connect.
-- SSH port 22 on EC2 is open for demo convenience — restrict to a bastion host IP in production.
+- `terraform.tfvars` is git-ignored — never commit it.
+- DB credentials are stored in SSM Parameter Store and injected at container startup, never hardcoded.
+- RDS is not publicly accessible; only ECS tasks in the same VPC can connect.
+- ECS tasks run in private subnets with no public IP assigned.
+- IAM roles follow least-privilege — the task role only grants the permissions the application actually needs.
