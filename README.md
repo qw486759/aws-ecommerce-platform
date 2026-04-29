@@ -1,4 +1,4 @@
-# AWS Cloud E-Commerce Platform
+﻿# AWS Cloud E-Commerce Platform
 
 A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, containerization, CI/CD pipeline design, and infrastructure-as-code. Every architectural decision is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md).
 
@@ -8,17 +8,17 @@ A production-style e-commerce backend deployed on AWS, built to demonstrate clou
 
 ```mermaid
 flowchart TD
-    Internet(["🌐 Internet\nUser traffic · HTTP"])
+    Internet(["?? Internet\nUser traffic 繚 HTTP"])
 
-    subgraph VPC["VPC — 10.0.0.0/16 · us-east-1"]
+    subgraph VPC["VPC ??10.0.0.0/16 繚 us-east-1"]
 
         subgraph PUB["Public subnets"]
             direction LR
             subgraph PUB_A["us-east-1a"]
-                ALB["**Application Load Balancer**\nHTTP · cross-zone"]
+                ALB["**Application Load Balancer**\nHTTP 繚 cross-zone"]
             end
             subgraph PUB_B["us-east-1b"]
-                NAT["**NAT Gateway**\nOutbound internet · Elastic IP"]
+                NAT["**NAT Gateway**\nOutbound internet 繚 Elastic IP"]
             end
         end
 
@@ -34,8 +34,8 @@ flowchart TD
 
         subgraph DATA["Data tier"]
             direction LR
-            RDS[("**RDS MySQL 8.0**\nMulti-AZ · Products catalog")]
-            DDB[("**DynamoDB**\nOn-demand · GSI · Orders table")]
+            RDS[("**RDS MySQL 8.0**\nMulti-AZ 繚 Products catalog")]
+            DDB[("**DynamoDB**\nOn-demand 繚 GSI 繚 Orders table")]
         end
 
     end
@@ -58,9 +58,9 @@ flowchart TD
     NAT -.->|"outbound"| Internet
 ```
 
-> Solid arrows = primary request path · Dashed arrows = outbound egress (NAT), cross-zone reads, or image pulls
+> Solid arrows = primary request path 繚 Dashed arrows = outbound egress (NAT), cross-zone reads, or image pulls
 >
-> 📐 Full editable diagram: [`docs/aws-ecommerce-architecture.drawio`](docs/aws-ecommerce-architecture.drawio)
+> ?? Full editable diagram: [`docs/aws-ecommerce-architecture.drawio`](docs/aws-ecommerce-architecture.drawio)
 
 ECS Fargate tasks run in private subnets and are only reachable through the ALB. Container images are stored in Amazon ECR and deployed automatically via GitHub Actions on every push to `main`.
 
@@ -72,28 +72,24 @@ ECS Fargate tasks run in private subnets and are only reachable through the ALB.
 
 ```
 Developer pushes to main branch
-    │
-    ▼
-GitHub Actions: deploy.yml
-    ├── Run Tests (pytest)
-    └── Build and Deploy to ECS
-          ├── docker build
-          ├── docker push → ECR
-          └── ECS rolling deployment → production
+    ??    ??GitHub Actions: deploy.yml
+    ??? Run Tests (pytest)
+    ??? Build and Deploy to ECS
+          ??? docker build
+          ??? docker push ??ECR
+          ??? ECS rolling deployment ??production
 ```
 
 ### Optional: Dual Environment with Approval Gate (push to staging)
 
 ```
 Developer pushes to staging branch
-    │
-    ▼
-GitHub Actions: deploy-staging.yml
-    ├── Run Tests (pytest)
-    ├── Build and Push → ECR
-    ├── Auto deploy → ECS staging
-    ├── Manual approval gate (GitHub Environment protection)
-    └── Auto deploy → ECS production (after approval)
+    ??    ??GitHub Actions: deploy-staging.yml
+    ??? Run Tests (pytest)
+    ??? Build and Push ??ECR
+    ??? Auto deploy ??ECS staging
+    ??? Manual approval gate (GitHub Environment protection)
+    ??? Auto deploy ??ECS production (after approval)
 ```
 
 See [docs/environments.md](docs/environments.md) for how to activate the dual-environment workflow.
@@ -106,7 +102,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 |-------|-----------|---------|
 | Infrastructure | Terraform | All AWS resources managed as code |
 | Network | VPC, public/private subnets, NAT Gateway | Network isolation |
-| Compute | ECS Fargate × 2 tasks | Serverless containers, no OS management |
+| Compute | ECS Fargate ? 2 tasks | Serverless containers, no OS management |
 | Container Registry | Amazon ECR | Docker image storage with lifecycle policies |
 | CI/CD | GitHub Actions | Automated test, build, and deploy pipeline |
 | Load Balancer | Application Load Balancer | Traffic distribution, health checks |
@@ -114,7 +110,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 | NoSQL DB | DynamoDB (on-demand) | Order storage with GSI |
 | API | FastAPI + Uvicorn | REST endpoints |
 | Secrets | AWS SSM Parameter Store | DB credentials injected at runtime |
-| Monitoring | CloudWatch Logs + Auto Scaling | Container logs, CPU-based scaling (2–4 tasks) |
+| Monitoring | CloudWatch Logs + Auto Scaling | Container logs, CPU-based scaling (2?? tasks) |
 | IAM | ECS Task Role + Execution Role | Least-privilege access |
 | Load Testing | Locust | Performance validation |
 
@@ -124,7 +120,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 
 | Method | Path | Description | Storage |
 |--------|------|-------------|---------|
-| GET | `/health` | ALB health check | — |
+| GET | `/health` | ALB health check | ??|
 | GET | `/products` | List all products | RDS MySQL |
 | POST | `/products` | Create a product | RDS MySQL |
 | GET | `/products/{id}` | Get a product by ID | RDS MySQL |
@@ -133,7 +129,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 
 Interactive API docs available at `http://<ALB_DNS>/docs` after deployment.
 
-API documentation preview: [E-Commerce API - Swagger UI]((docs/swagger-ui.pdf))
+API documentation preview: [E-Commerce API - Swagger UI](docs/swagger-ui.pdf)
 
 ---
 
@@ -177,31 +173,31 @@ DB credentials are encrypted at rest and injected into containers at startup via
 
 ```
 aws-ecommerce-platform/
-├── app/
-│   ├── main.py                    # FastAPI application
-│   └── requirements.txt           # Python dependencies
-├── tests/
-│   ├── test_api.py                # Functional smoke tests
-│   └── locustfile.py              # Locust load test
-├── docs/
-│   ├── architecture-decisions.md  # ADR — why each decision was made
-│   └── environments.md            # How to switch between environments
-├── .github/
-│   └── workflows/
-│       ├── deploy.yml             # Default: push to main → production
-│       └── deploy-staging.yml     # Optional: staging → approval → production
-├── Dockerfile                     # Multi-stage build
-├── main.tf                        # Terraform provider + VPC data sources
-├── variables.tf                   # Input variable declarations
-├── outputs.tf                     # Output values (ALB DNS, ECR URL, etc.)
-├── aurora.tf                      # RDS MySQL instance + subnet group
-├── compute.tf                     # ALB, NAT Gateway
-├── ecs.tf                         # ECS Fargate — cluster, service, task, ECR, IAM
-├── ecs-staging.tf                 # ECS Fargate — staging environment
-├── dynamodb.tf                    # DynamoDB orders table + GSI
-├── security_group.tf              # Three-tier security group model
-├── terraform.tfvars.example       # Template — copy to terraform.tfvars
-└── .gitignore                     # Excludes secrets and state files
+??? app/
+??  ??? main.py                    # FastAPI application
+??  ??? requirements.txt           # Python dependencies
+??? tests/
+??  ??? test_api.py                # Functional smoke tests
+??  ??? locustfile.py              # Locust load test
+??? docs/
+??  ??? architecture-decisions.md  # ADR ??why each decision was made
+??  ??? environments.md            # How to switch between environments
+??? .github/
+??  ??? workflows/
+??      ??? deploy.yml             # Default: push to main ??production
+??      ??? deploy-staging.yml     # Optional: staging ??approval ??production
+??? Dockerfile                     # Multi-stage build
+??? main.tf                        # Terraform provider + VPC data sources
+??? variables.tf                   # Input variable declarations
+??? outputs.tf                     # Output values (ALB DNS, ECR URL, etc.)
+??? aurora.tf                      # RDS MySQL instance + subnet group
+??? compute.tf                     # ALB, NAT Gateway
+??? ecs.tf                         # ECS Fargate ??cluster, service, task, ECR, IAM
+??? ecs-staging.tf                 # ECS Fargate ??staging environment
+??? dynamodb.tf                    # DynamoDB orders table + GSI
+??? security_group.tf              # Three-tier security group model
+??? terraform.tfvars.example       # Template ??copy to terraform.tfvars
+??? .gitignore                     # Excludes secrets and state files
 ```
 
 ---
@@ -240,7 +236,7 @@ terraform init
 # 5. Preview changes
 terraform plan
 
-# 6. Deploy (takes ~15 minutes — RDS Multi-AZ is the slowest step)
+# 6. Deploy (takes ~15 minutes ??RDS Multi-AZ is the slowest step)
 terraform apply
 
 # 7. Push the first Docker image to ECR
@@ -268,7 +264,7 @@ After the first deployment, all subsequent code changes are deployed automatical
 
 ## GitHub Actions Setup
 
-Add the following secrets in your repo under **Settings → Secrets and variables → Actions**:
+Add the following secrets in your repo under **Settings ??Secrets and variables ??Actions**:
 
 | Secret | Value |
 |--------|-------|
@@ -283,20 +279,20 @@ Add the following secrets in your repo under **Settings → Secrets and variable
 |----------|------|
 | NAT Gateway | ~$0.045/hr |
 | RDS MySQL Multi-AZ (db.t3.micro) | ~$0.034/hr |
-| ECS Fargate × 2 tasks | ~$0.012/hr |
+| ECS Fargate ? 2 tasks | ~$0.012/hr |
 | ALB | ~$0.018/hr |
 | DynamoDB (on-demand) | ~$0.00 idle |
 | **Total (single environment)** | **~$2.5/day** |
 | **Total (dual environment)** | **~$3.8/day** |
 
-A typical demo run (deploy → test → destroy in 2–3 hours) costs under **$1 USD**.
+A typical demo run (deploy ??test ??destroy in 2?? hours) costs under **$1 USD**.
 
 ---
 
 ## Security Notes
 
-- `terraform.tfvars` is git-ignored — never commit it.
+- `terraform.tfvars` is git-ignored ??never commit it.
 - DB credentials are stored in SSM Parameter Store and injected at container startup, never hardcoded.
 - RDS is not publicly accessible; only ECS tasks in the same VPC can connect.
 - ECS tasks run in private subnets with no public IP assigned.
-- IAM roles follow least-privilege — the task role only grants the permissions the application actually needs.
+- IAM roles follow least-privilege ??the task role only grants the permissions the application actually needs.
