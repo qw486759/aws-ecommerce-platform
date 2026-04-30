@@ -139,7 +139,15 @@ API documentation preview: [E-Commerce API - Swagger UI](docs/swagger-uI.pdf)
 
 ## Architecture Decisions
 
-Full rationale is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md):
+Every decision is documented as an individual ADR in [`docs/adr/`](docs/adr/):
+
+| ADR | Decision | Status |
+|-----|----------|--------|
+| [ADR-001](docs/adr/adr-001-compute-ecs-fargate-vs-ec2.md) | ECS Fargate vs EC2 for compute | Accepted |
+| [ADR-002](docs/adr/adr-002-database-rds-vs-dynamodb.md) | RDS MySQL for products, DynamoDB for orders | Accepted |
+| [ADR-003](docs/adr/adr-003-cicd-single-vs-dual-environment.md) | Single vs dual CI/CD environment strategy | Accepted |
+| [ADR-004](docs/adr/adr-004-secrets-ssm-parameter-store.md) | SSM Parameter Store for secrets management | Accepted |
+| [ADR-005](docs/adr/adr-005-network-public-private-subnets.md) | Public/private subnet separation | Accepted |
 
 **Why ECS Fargate instead of EC2?**
 Fargate eliminates OS management overhead and integrates cleanly with ECR and GitHub Actions. A `git push` triggers a full rolling deployment without SSH, CodeDeploy, or manual restarts. See ADR-001.
@@ -184,8 +192,17 @@ aws-ecommerce-platform/
 |   |-- test_api.py                # Functional smoke tests
 |   +-- locustfile.py              # Locust load test
 |-- docs/
-|   |-- architecture-decisions.md  # ADR - why each decision was made
-|   +-- environments.md            # How to switch between environments
+|   |-- adr/                           # Architecture Decision Records
+|   |   |-- adr-001-compute-ecs-fargate-vs-ec2.md
+|   |   |-- adr-002-database-rds-vs-dynamodb.md
+|   |   |-- adr-003-cicd-single-vs-dual-environment.md
+|   |   |-- adr-004-secrets-ssm-parameter-store.md
+|   |   +-- adr-005-network-public-private-subnets.md
+|   |-- architecture-decisions.md      # ADR index and summary
+|   |-- demo-walkthrough.md            # Step-by-step demo guide
+|   |-- environments.md                # How to switch between environments
+|   |-- failure-scenarios.md           # Expected failure behavior and validation
+|   +-- production-readiness.md        # What changes before going to production
 |-- .github/
 |   +-- workflows/
 |       |-- deploy.yml             # Default: push to main -> production
