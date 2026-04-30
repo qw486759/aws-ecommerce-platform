@@ -1,6 +1,14 @@
 # AWS Cloud E-Commerce Platform
 
-A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, containerization, CI/CD pipeline design, and infrastructure-as-code. Every architectural decision is documented in [docs/architecture-decisions.md](docs/architecture-decisions.md).
+A production-style e-commerce backend deployed on AWS, built to demonstrate cloud architecture design, containerization, CI/CD pipeline design, and infrastructure-as-code. Key architectural decisions are documented as individual ADRs under [docs/adr/](docs/adr/), with a summary in [docs/architecture-decisions.md](docs/architecture-decisions.md).
+
+## What This Demonstrates
+
+- Designing private, production-style AWS workloads behind a public ALB
+- Running containerized APIs on ECS Fargate across multiple Availability Zones
+- Choosing RDS MySQL and DynamoDB based on workload access patterns
+- Automating deployment with GitHub Actions, ECR, and ECS rolling deployments
+- Documenting architecture trade-offs, failure behavior, cost, and production-readiness gaps
 
 ---
 
@@ -133,7 +141,7 @@ See [docs/environments.md](docs/environments.md) for how to activate the dual-en
 
 Interactive API docs available at `http://<ALB_DNS>/docs` after deployment.
 
-API documentation preview: [E-Commerce API - Swagger UI](docs/swagger-uI.pdf)
+API documentation preview: [E-Commerce API - Swagger UI](docs/swagger-ui.pdf)
 
 ---
 
@@ -152,14 +160,14 @@ Every decision is documented as an individual ADR in [`docs/adr/`](docs/adr/):
 **Why ECS Fargate instead of EC2?**
 Fargate eliminates OS management overhead and integrates cleanly with ECR and GitHub Actions. A `git push` triggers a full rolling deployment without SSH, CodeDeploy, or manual restarts. See ADR-001.
 
-**Why two CI/CD strategies?**
-Single-environment deployment suits small teams and fast iteration. Dual-environment with an approval gate suits production workloads with real users or compliance requirements. Both are maintained in the repo so clients can choose based on their needs. See ADR-002.
-
 **Why RDS MySQL with Multi-AZ?**
-Product data is relational and benefits from ACID transactions. Multi-AZ provides automatic failover to a standby replica in a second Availability Zone, giving ~99.95% availability with zero manual intervention. See ADR-003.
+Product data is relational and benefits from ACID transactions. Multi-AZ provides automatic failover to a standby replica in a second Availability Zone, giving high availability with zero manual intervention. See ADR-002.
 
 **Why DynamoDB for orders?**
-Orders are write-heavy and have a flexible schema (each order can contain a variable number of items). DynamoDB's on-demand billing means no idle cost, and it scales to millions of writes per second without capacity planning. See ADR-003.
+Orders are write-heavy and have a flexible schema because each order can contain a variable number of items. DynamoDB on-demand billing avoids idle capacity cost and scales without manual capacity planning. See ADR-002.
+
+**Why two CI/CD strategies?**
+Single-environment deployment suits small teams and fast iteration. Dual-environment with an approval gate suits production workloads with real users or compliance requirements. Both are maintained in the repo so clients can choose based on their needs. See ADR-003.
 
 **Why SSM Parameter Store for secrets?**
 DB credentials are encrypted at rest and injected into containers at startup via the ECS task execution role. Nothing sensitive is hardcoded in task definitions or committed to the repository. See ADR-004.
@@ -178,6 +186,8 @@ DB credentials are encrypted at rest and injected into containers at startup via
 | Median response time | 100 ms |
 | 95th percentile | 470 ms |
 | Peak response time | 698 ms |
+
+These results validate the demo architecture under controlled load. They are not intended to represent production capacity limits; production sizing would require longer-duration testing, realistic traffic patterns, and database connection monitoring.
 
 ---
 
@@ -316,4 +326,4 @@ A typical demo run (deploy, test, destroy in 2-3 hours) costs under **$1 USD**.
 - DB credentials are stored in SSM Parameter Store and injected at container startup, never hardcoded.
 - RDS is not publicly accessible; only ECS tasks in the same VPC can connect.
 - ECS tasks run in private subnets with no public IP assigned.
-- IAM roles follow least-privilege - the task role only grants the permissions the application actually needs.
+- IAM roles follow least privilege: the ECS execution role can pull images and read required SSM parameters, while the task role grants only the runtime permissions the application needs, such as DynamoDB access.
