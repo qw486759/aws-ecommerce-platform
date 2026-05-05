@@ -23,3 +23,8 @@ variable "db_password" {
   type        = string
   sensitive   = true # prevents the value from appearing in Terraform output
 }
+
+variable "alert_email" {
+  description = "Email address to receive CloudWatch alarm notifications"
+  type        = string
+}

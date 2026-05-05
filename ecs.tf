@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "app" {
   name                 = "ecommerce-app"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -230,6 +231,25 @@ resource "aws_appautoscaling_policy" "cpu" {
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
   }
+}
+
+resource "aws_iam_role_policy" "ecs_task_execution_ssm" {
+  name = "ecommerce-ecs-execution-ssm"
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/ecommerce/*"
+      }
+    ]
+  })
 }
 
 data "aws_caller_identity" "current" {}
