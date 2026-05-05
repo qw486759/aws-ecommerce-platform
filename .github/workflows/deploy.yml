@@ -34,7 +34,6 @@ jobs:
 
       - name: Run tests
         run: pytest tests/test_api.py -v
-        continue-on-error: true
 
   deploy:
     name: Build and Deploy to ECS

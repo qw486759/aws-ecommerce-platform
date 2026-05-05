@@ -12,10 +12,12 @@ Usage:
     python tests/test_api.py
 """
 
+import os
+
+import pytest
 import requests
 
-# Replace with your ALB DNS name after `terraform apply`
-BASE_URL = "http://ecommerce-alb-312956727.us-east-1.elb.amazonaws.com"
+BASE_URL = os.environ["BASE_URL"]
 
 
 def test_health():
@@ -39,6 +41,11 @@ def test_create_product():
     assert r.status_code == 201
     print(f"✅ Created: {r.json()}")
     return r.json()["id"]
+
+
+@pytest.fixture
+def product_id():
+    return test_create_product()
 
 
 def test_list_products():
