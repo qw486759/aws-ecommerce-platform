@@ -327,3 +327,5 @@ A typical demo run (deploy, test, destroy in 2-3 hours) costs under **$1 USD**.
 - RDS is not publicly accessible; only ECS tasks in the same VPC can connect.
 - ECS tasks run in private subnets with no public IP assigned.
 - IAM roles follow least privilege: the ECS execution role can pull images and read required SSM parameters, while the task role grants only the runtime permissions the application needs, such as DynamoDB access.
+#   P R   w o r k f l o w   t e s t  
+ 
