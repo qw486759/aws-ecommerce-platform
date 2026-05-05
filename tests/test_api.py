@@ -27,8 +27,8 @@ def test_health():
     print(f"✅ Health: {r.json()}")
 
 
-def test_create_product():
-    print("\n=== Create Product ===")
+def _create_product() -> int:
+    """Helper: create a product and return its id."""
     payload = {
         "name": "iPhone 15",
         "description": "Apple smartphone",
@@ -42,10 +42,13 @@ def test_create_product():
     print(f"✅ Created: {r.json()}")
     return r.json()["id"]
 
+def test_create_product():
+    print("\n=== Create Product ===")
+    _create_product()
 
 @pytest.fixture
 def product_id():
-    return test_create_product()
+    return _create_product()
 
 
 def test_list_products():
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     print(f"   Target: {BASE_URL}")
     try:
         test_health()
-        product_id = test_create_product()
+        product_id = _create_product()
         test_list_products()
         test_create_order(product_id)
         test_get_orders()

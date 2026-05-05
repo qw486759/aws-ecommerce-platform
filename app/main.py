@@ -76,6 +76,31 @@ def get_dynamo():
     session = boto3.Session(region_name="us-east-1")
     return session.resource("dynamodb")
 
+# --- Schema bootstrap --------------------------------------------------
+def init_db():
+    """Create tables if they don't exist (idempotent)."""
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS products (
+                    id          INT AUTO_INCREMENT PRIMARY KEY,
+                    name        VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    price       DECIMAL(10,2) NOT NULL,
+                    stock       INT DEFAULT 0
+                )
+            """)
+            conn.commit()
+    finally:
+        conn.close()
+
+@app.on_event("startup")
+def startup_event():
+    """Run schema bootstrap on every container start."""
+    if ENVIRONMENT != "local":
+        init_db()
+        
 # ─── Health Check ──────────────────────────────────────
 @app.get("/health")
 def health():
