@@ -1,26 +1,48 @@
-# Terraform state and secrets — never commit these
+# =========================
+# Terraform (state & local)
+# =========================
 *.tfstate
-*.tfstate.backup
-*.tfstate.lock.info
+*.tfstate.*
 .terraform/
 .terraform.lock.hcl
-# Terraform variable files may contain secrets
+
+# Variable files (may contain secrets)
 *.tfvars
 *.tfvars.json
 
-# AWS credentials and SSH keys
+# Override files (Terraform local overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =========================
+# Secrets / Credentials
+# =========================
+.env
+.env.*
 *.pem
+*.key
 *.csv
+
+# AWS / admin artifacts
 ecommerce-admin*
 
+# =========================
 # Python
+# =========================
 __pycache__/
 *.pyc
-.env
+.pytest_cache/
 
-# OS
+# =========================
+# OS / misc
+# =========================
 .DS_Store
 Thumbs.db
 
+# =========================
+# Project-specific sensitive configs
+# =========================
 overrides.json
 ssm-policy.json
