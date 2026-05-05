@@ -126,7 +126,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r app/requirements.txt
-          pip install pytest
+          pip install -r tests/requirements.txt
 
       - name: Run integration tests against staging
         env:
