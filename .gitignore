@@ -4,7 +4,9 @@
 *.tfstate.lock.info
 .terraform/
 .terraform.lock.hcl
-terraform.tfvars       # contains DB password
+# Terraform variable files may contain secrets
+*.tfvars
+*.tfvars.json
 
 # AWS credentials and SSH keys
 *.pem
