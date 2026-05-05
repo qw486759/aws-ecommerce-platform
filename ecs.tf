@@ -124,9 +124,10 @@ resource "aws_ecs_task_definition" "app" {
     }]
 
     environment = [
-      { name = "AWS_REGION",     value = var.aws_region },
-      { name = "DYNAMO_TABLE", value = aws_dynamodb_table.orders.name },
-      { name = "DB_HOST", value = "ecommerce-mysql.ckb04yy26c43.us-east-1.rds.amazonaws.com" },
+      { name = "AWS_REGION", value = var.aws_region },
+      { name = "DYNAMODB_TABLE", value = aws_dynamodb_table.orders.name },
+      { name = "ENVIRONMENT", value = "production" },
+      { name = "DB_HOST", value = aws_db_instance.mysql.address },
       { name = "DB_PORT", value = "3306" },
       { name = "DB_NAME", value = "ecommerce" },
       { name = "DB_USER", value = "admin" }

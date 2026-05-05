@@ -21,5 +21,5 @@ variable "project_name" {
 variable "db_password" {
   description = "Master password for the RDS MySQL instance"
   type        = string
-  sensitive   = true   # prevents the value from appearing in Terraform output
+  sensitive   = true # prevents the value from appearing in Terraform output
 }

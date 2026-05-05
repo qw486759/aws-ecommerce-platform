@@ -31,21 +31,21 @@ resource "aws_db_instance" "mysql" {
   identifier        = "${var.project_name}-mysql"
   engine            = "mysql"
   engine_version    = "8.0"
-  instance_class    = "db.t3.micro"  # smallest available class
-  allocated_storage = 20             # GiB; minimum allowed
+  instance_class    = "db.t3.micro" # smallest available class
+  allocated_storage = 20            # GiB; minimum allowed
   storage_type      = "gp2"
 
   db_name  = "ecommerce"
   username = "admin"
-  password = var.db_password         # injected from terraform.tfvars (git-ignored)
+  password = var.db_password # injected from terraform.tfvars (git-ignored)
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.aurora.id]
 
-  multi_az            = true   # standby replica in a second AZ for HA
-  publicly_accessible = false  # no direct internet access — private subnet only
-  skip_final_snapshot = true   # do not create a snapshot on terraform destroy
-  deletion_protection = false  # allow destroy without manual intervention
+  multi_az            = true  # standby replica in a second AZ for HA
+  publicly_accessible = false # no direct internet access — private subnet only
+  skip_final_snapshot = true  # do not create a snapshot on terraform destroy
+  deletion_protection = false # allow destroy without manual intervention
 
   tags = {
     Name    = "${var.project_name}-mysql"

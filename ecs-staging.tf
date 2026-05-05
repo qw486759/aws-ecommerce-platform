@@ -34,9 +34,13 @@ resource "aws_ecs_task_definition" "app_staging" {
     }]
 
     environment = [
-      { name = "AWS_REGION",     value = var.aws_region },
+      { name = "AWS_REGION", value = var.aws_region },
       { name = "DYNAMODB_TABLE", value = aws_dynamodb_table.orders.name },
-      { name = "ENVIRONMENT",    value = "staging" }
+      { name = "ENVIRONMENT", value = "staging" },
+      { name = "DB_HOST", value = aws_db_instance.mysql.address },
+      { name = "DB_PORT", value = "3306" },
+      { name = "DB_NAME", value = "ecommerce" },
+      { name = "DB_USER", value = "admin" }
     ]
 
     secrets = [

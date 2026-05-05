@@ -18,12 +18,18 @@ app = FastAPI(title="E-Commerce API", version="1.0.")
 
 # ─── Configuration ─────────────────────────────────────
 # Environment variables injected by EC2 user_data via systemd service
-DB_HOST      = os.getenv("DB_HOST", "localhost")
+ENVIRONMENT  = os.getenv("ENVIRONMENT", "local").lower()
+DB_HOST      = os.getenv("DB_HOST")
+if not DB_HOST:
+    if ENVIRONMENT in ("local", ""):
+        DB_HOST = "localhost"
+    else:
+        raise RuntimeError("DB_HOST must be set for staging/production environments")
 DB_USER      = os.getenv("DB_USER", "admin")
 DB_PASSWORD  = os.getenv("DB_PASSWORD", "password")
 DB_NAME      = os.getenv("DB_NAME", "ecommerce")
 AWS_REGION   = os.getenv("AWS_REGION", "us-east-1")
-DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "ecommerce-orders")
+DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE") or os.getenv("DYNAMO_TABLE", "ecommerce-orders")
 
 # ─── Request / Response Models ─────────────────────────
 class Product(BaseModel):
@@ -126,7 +132,7 @@ def get_orders(user_id: str):
     (user-index) on the user_id attribute.
     """
     dynamo = get_dynamo()
-    table = dynamo.Table(DYNAMO_TABLE)
+    table = dynamo.Table(DYNAMODB_TABLE)
     response = table.query(
         IndexName="user-index",
         KeyConditionExpression=Key("user_id").eq(user_id)
@@ -142,7 +148,7 @@ def create_order(order: Order):
     """
     try:
         dynamo = get_dynamo()
-        table = dynamo.Table(DYNAMO_TABLE)
+        table = dynamo.Table(DYNAMODB_TABLE)
         order_id   = str(uuid.uuid4())
         created_at = datetime.utcnow().isoformat()
         item = {
