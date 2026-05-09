@@ -1,4 +1,4 @@
-# security_groups.tf - Network access control (least-privilege design)
+# security_group.tf - Network access control (least-privilege design)
 #
 # Three-tier security model:
 #   Internet -> ALB SG (port 80 open) -> ECS tasks SG (port 8000, ALB only)
