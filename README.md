@@ -123,7 +123,7 @@ Hardcoded credentials in task definitions are a security risk and make rotation 
 A PR gate ensures every change is reviewed and passes CI before reaching main. Merging to main triggers the full pipeline automatically. This mirrors real team workflows and prevents accidental pushes from deploying untested code.
 
 **Why terraform destroy between demo runs?**
-All 36 resources can be created with `terraform apply` and destroyed with `terraform destroy`. This keeps demo costs under $1 per run and eliminates idle charges from RDS and NAT Gateway.
+All resources can be created with `terraform apply` and destroyed with `terraform destroy`. This keeps demo costs under $1 per run and eliminates idle charges from RDS and NAT Gateway.
 
 ---
 
