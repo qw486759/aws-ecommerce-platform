@@ -37,8 +37,8 @@ resource "aws_security_group" "alb" {
 
 # RDS Security Group - only accepts MySQL connections from ECS tasks
 resource "aws_security_group" "rds" {
-  name        = "${var.project_name}-aurora-sg"
-  description = "Security group for Aurora cluster"
+  name        = "${var.project_name}-rds-sg"
+  description = "Security group for RDS MySQL"
   vpc_id      = data.aws_vpc.main.id
 
   ingress {
