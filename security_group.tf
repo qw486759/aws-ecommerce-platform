@@ -35,8 +35,8 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# Aurora/RDS Security Group - only accepts MySQL connections from ECS tasks
-resource "aws_security_group" "aurora" {
+# RDS Security Group - only accepts MySQL connections from ECS tasks
+resource "aws_security_group" "rds" {
   name        = "${var.project_name}-aurora-sg"
   description = "Security group for Aurora cluster"
   vpc_id      = data.aws_vpc.main.id
@@ -65,7 +65,7 @@ resource "aws_security_group" "aurora" {
   }
 
   tags = {
-    Name    = "${var.project_name}-aurora-sg"
+    Name    = "${var.project_name}-rds-sg"
     Project = var.project_name
   }
 }

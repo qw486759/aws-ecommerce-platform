@@ -11,7 +11,7 @@
 #   - multi_az = true deploys a standby replica in a second AZ for high
 #     availability (automatic failover if the primary fails).
 #   - publicly_accessible = false ensures the DB is only reachable from
-#     inside the VPC (via the EC2 security group).
+#     inside the VPC (via the ECS tasks security group).
 #   - skip_final_snapshot = true avoids leaving a paid snapshot after destroy.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ resource "aws_db_instance" "mysql" {
   password = var.db_password # injected from terraform.tfvars (git-ignored)
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [aws_security_group.aurora.id]
+  vpc_security_group_ids = [aws_security_group.rds.id]
 
   multi_az            = true  # standby replica in a second AZ for HA
   publicly_accessible = false # no direct internet access — private subnet only
