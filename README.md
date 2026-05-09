@@ -178,7 +178,7 @@ aws-ecommerce-platform/
 ├── main.tf                       # Terraform provider + VPC data sources
 ├── variables.tf                  # Input variable declarations
 ├── outputs.tf                    # Output values (ALB DNS, ECR URL, etc.)
-├── aurora.tf                     # RDS MySQL instance + subnet group
+├── rds.tf                        # RDS MySQL instance + subnet group
 ├── compute.tf                    # ALB, NAT Gateway, target group
 ├── ecs.tf                        # ECS cluster, task definition, service, ECR, IAM
 ├── ecs-staging.tf                # Staging ECS cluster, service, ALB
@@ -254,7 +254,7 @@ For automated deployments, push to a feature branch, open a PR to main, and the 
 | Resource | Cost |
 |----------|------|
 | NAT Gateway | ~$0.045/hr |
-| RDS MySQL Multi-AZ (db.t3.micro) | ~$0.034/hr |
+| RDS MySQL Multi-AZ (db.t3.micro) | ~$0.068/hr (Multi-AZ doubles the rate) |
 | ECS Fargate (2 tasks, 0.25 vCPU / 512 MB each) | ~$0.012/hr |
 | ALB × 2 (prod + staging) | ~$0.036/hr |
 | DynamoDB (on-demand) | ~$0.00 idle |

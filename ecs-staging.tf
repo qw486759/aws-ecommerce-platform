@@ -186,8 +186,3 @@ resource "aws_ecs_service" "app_staging" {
 
   tags = { Name = "ecommerce-service-staging", Environment = "staging" }
 }
-
-output "staging_alb_dns" {
-  description = "Staging ALB DNS name"
-  value       = aws_lb.staging.dns_name
-}

@@ -1,4 +1,4 @@
-# Application dependencies installed on each EC2 instance via user_data.
+# Application dependencies — installed in the Docker image at build time.
 # Pin exact versions to ensure reproducible deployments.
 
 fastapi==0.109.0       # Web framework

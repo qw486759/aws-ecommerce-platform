@@ -17,7 +17,7 @@ import uuid
 app = FastAPI(title="E-Commerce API", version="1.0.")
 
 # ─── Configuration ─────────────────────────────────────
-# Environment variables injected by EC2 user_data via systemd service
+# Environment variables injected by ECS task definition
 ENVIRONMENT  = os.getenv("ENVIRONMENT", "local").lower()
 DB_HOST      = os.getenv("DB_HOST")
 if not DB_HOST:
@@ -70,10 +70,10 @@ def get_db():
 def get_dynamo():
     """
     Return a boto3 DynamoDB resource.
-    Uses explicit boto3.Session to ensure the correct AWS region is set
-    when running on EC2 with an IAM instance profile.
+    Uses explicit boto3.Session to ensure the correct AWS region is set.
+    Region is read from the AWS_REGION env var injected by the ECS task definition.
     """
-    session = boto3.Session(region_name="us-east-1")
+    session = boto3.Session(region_name=AWS_REGION)
     return session.resource("dynamodb")
 
 # --- Schema bootstrap --------------------------------------------------
