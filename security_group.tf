@@ -2,7 +2,7 @@
 #
 # Three-tier security model:
 #   Internet -> ALB SG (port 80 open) -> ECS tasks SG (port 8000, ALB only)
-#                                      -> Aurora SG (port 3306, ECS tasks only)
+#                                      -> RDS SG (port 3306, ECS tasks only)
 #
 # Each tier only accepts traffic from the tier directly above it, so the
 # database is never reachable from the public internet.

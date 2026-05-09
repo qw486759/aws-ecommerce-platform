@@ -39,7 +39,7 @@ data "aws_subnets" "public" {
   }
 }
 
-# Fetch all private subnets inside the VPC (used by EC2 and RDS).
+# Fetch all private subnets inside the VPC (used by ECS tasks and RDS).
 data "aws_subnets" "private" {
   filter {
     name   = "vpc-id"

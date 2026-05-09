@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# aurora.tf — Relational database (RDS MySQL)
+# rds.tf — Relational database (RDS MySQL)
 #
 # Production note: this demo uses RDS MySQL instead of Aurora MySQL because
 # Aurora requires a non-free-tier account. The architecture and Terraform
