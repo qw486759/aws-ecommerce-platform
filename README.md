@@ -258,9 +258,9 @@ For automated deployments, push to a feature branch, open a PR to main, and the 
 | ECS Fargate (2 tasks, 0.25 vCPU / 512 MB each) | ~$0.012/hr |
 | ALB × 2 (prod + staging) | ~$0.036/hr |
 | DynamoDB (on-demand) | ~$0.00 idle |
-| **Total** | **~$0.13/hr** |
+| **Total** | **~$0.161/hr** |
 
-A typical demo run (deploy → test → destroy in 2 hours) costs under **$0.30 USD**.
+A typical demo run (deploy → test → destroy in 2 hours) costs under **$0.35 USD**.
 
 ---
 
