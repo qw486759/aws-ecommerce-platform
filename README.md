@@ -225,13 +225,19 @@ terraform init
 terraform apply
 
 # 5. Build and push Docker image to ECR
+# Linux/Mac:
 aws ecr get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin <ecr-url>
-docker build -t ecommerce-app .
-docker tag ecommerce-app:latest <ecr-url>/ecommerce-app:latest
-docker push <ecr-url>/ecommerce-app:latest
 
-# 6. Force ECS to deploy new image
+# Windows (PowerShell):
+cmd /c "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <ecr-url>"
+
+docker build -t <ecr-url>/ecommerce-app:production .
+docker tag <ecr-url>/ecommerce-app:production <ecr-url>/ecommerce-app:staging
+docker push <ecr-url>/ecommerce-app:production
+docker push <ecr-url>/ecommerce-app:staging
+
+# 6. Only needed for initial manual deployment; CI/CD handles this automatically
 aws ecs update-service \
   --cluster ecommerce-cluster \
   --service ecommerce-service \
@@ -271,3 +277,4 @@ A typical demo run (deploy → test → destroy in 2 hours) costs under **$0.35 
 - RDS and ECS tasks are in private subnets — not directly reachable from the internet.
 - The ECS task execution role has `ssm:GetParameters` scoped to `/ecommerce/*` only.
 - ECR has `scan_on_push = true` — images are scanned for CVEs on every push.
+
