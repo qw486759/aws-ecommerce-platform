@@ -32,7 +32,11 @@
 - `amazon/dynamodb-local` simulates DynamoDB
 - `dynamodb-init` uses a `until` retry loop (not `sleep`) to wait for DynamoDB readiness before creating the table and GSI
 - `ecommerce-app:local` runs the FastAPI application
-
+- `init_db()` implements a retry loop (up to 10 attempts, 3s delay) to handle
+  MySQL startup latency — mirrors RDS cold start behaviour in ECS
+- `AWS_ENDPOINT_URL` env var routes DynamoDB traffic to DynamoDB Local;
+  unset in ECS so production uses real AWS DynamoDB
+  
 **Commands:**
 ```powershell
 docker build -t ecommerce-app:local .
@@ -104,7 +108,7 @@ aws rds describe-db-instances \
 **Purpose:** Validate Docker image can be pushed to ECR and ECS tasks start successfully.
 
 **Mechanism:**
-- Windows PowerShell pipe (`|`) modifies byte encoding when passing tokens to `--password-stdin`, causing ECR to return HTTP 400. Using `cmd /c` preserves the raw byte stream and resolves this. This was the reliable approach used in this Windows PowerShell environment.
+- Windows PowerShell pipe (`|`) modifies byte encoding when passing tokens to `--password-stdin`, causing ECR to return HTTP 400. Using `cmd /c` preserves the raw byte stream and resolves this — the standard approach for ECR login on Windows PowerShell.
 - Both `production` and `staging` tags are pushed to match ECS task definition image references.
 - ECS does **not** automatically detect a new image with the same tag. `force-new-deployment` is required for the initial manual deployment. In normal CI/CD operation, `amazon-ecs-render-task-definition` registers a new task definition revision on every run, which triggers a rolling update automatically.
 
@@ -279,7 +283,7 @@ aws elbv2 describe-target-health \
 |------|-------------|--------|
 | STAGING_ALB_DNS | ALB DNS changes on every `terraform apply`; must update GitHub Secret manually | Low — resolved by adding Route 53 in production |
 | SNS duplicate subscriptions | Two subscriptions created from two `terraform apply` runs | Low — both deliver alerts correctly |
-| Windows ECR login | PowerShell pipe encoding issue requires `cmd /c` workaround | Low — reliable workaround for this Windows PowerShell environment |
+| Windows ECR login | PowerShell pipe encoding issue requires `cmd /c` workaround | Low — validated Windows PowerShell-compatible ECR login approach |
 | No Route 53 | Fixed domain not configured; staging URL changes each deployment | Low — intentional for cost reasons in demo |
 | CI/CD depends on live infrastructure | After `terraform destroy`, GitHub Actions deployment jobs will fail until infrastructure is recreated | Expected — run `terraform apply` before triggering pipeline |
 

@@ -13,6 +13,7 @@ import boto3
 import pymysql
 import os
 import uuid
+import time
 
 app = FastAPI(title="E-Commerce API", version="1.0.")
 
@@ -78,23 +79,34 @@ def get_dynamo():
     return session.resource("dynamodb", endpoint_url=AWS_ENDPOINT_URL)
 
 # --- Schema bootstrap --------------------------------------------------
-def init_db():
-    """Create tables if they don't exist (idempotent)."""
-    conn = get_db()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS products (
-                    id          INT AUTO_INCREMENT PRIMARY KEY,
-                    name        VARCHAR(255) NOT NULL,
-                    description TEXT,
-                    price       DECIMAL(10,2) NOT NULL,
-                    stock       INT DEFAULT 0
-                )
-            """)
-            conn.commit()
-    finally:
-        conn.close()
+def init_db(max_retries: int = 10, delay_seconds: int = 3):
+    """Create tables if they don't exist, retrying while MySQL becomes ready."""
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            conn = get_db()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS products (
+                            id          INT AUTO_INCREMENT PRIMARY KEY,
+                            name        VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            price       DECIMAL(10,2) NOT NULL,
+                            stock       INT DEFAULT 0
+                        )
+                    """)
+                    conn.commit()
+                return
+            finally:
+                conn.close()
+        except Exception as e:
+            last_error = e
+            print(f"MySQL not ready yet ({attempt}/{max_retries}): {e}")
+            time.sleep(delay_seconds)
+
+    raise RuntimeError(f"MySQL did not become ready after {max_retries} attempts: {last_error}")
 
 @app.on_event("startup")
 def startup_event():
