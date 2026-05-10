@@ -28,8 +28,9 @@ if not DB_HOST:
 DB_USER      = os.getenv("DB_USER", "admin")
 DB_PASSWORD  = os.getenv("DB_PASSWORD", "password")
 DB_NAME      = os.getenv("DB_NAME", "ecommerce")
-AWS_REGION   = os.getenv("AWS_REGION", "us-east-1")
-DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE") or os.getenv("DYNAMO_TABLE", "ecommerce-orders")
+AWS_REGION       = os.getenv("AWS_REGION", "us-east-1")
+AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL") 
+DYNAMODB_TABLE   = os.getenv("DYNAMODB_TABLE") or os.getenv("DYNAMO_TABLE", "ecommerce-orders")
 
 # ─── Request / Response Models ─────────────────────────
 class Product(BaseModel):
@@ -70,11 +71,11 @@ def get_db():
 def get_dynamo():
     """
     Return a boto3 DynamoDB resource.
-    Uses explicit boto3.Session to ensure the correct AWS region is set.
-    Region is read from the AWS_REGION env var injected by the ECS task definition.
+    Uses AWS_ENDPOINT_URL when set (local docker-compose) to point at DynamoDB Local.
+    Falls back to real AWS DynamoDB when AWS_ENDPOINT_URL is not set (ECS production/staging).
     """
     session = boto3.Session(region_name=AWS_REGION)
-    return session.resource("dynamodb")
+    return session.resource("dynamodb", endpoint_url=AWS_ENDPOINT_URL)
 
 # --- Schema bootstrap --------------------------------------------------
 def init_db():
