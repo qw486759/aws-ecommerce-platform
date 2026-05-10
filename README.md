@@ -186,6 +186,9 @@ aws-ecommerce-platform/
 ├── monitoring.tf                 # CloudWatch alarms + SNS topic
 ├── security_group.tf             # Three-tier security group model
 ├── terraform.tfvars.example      # Template — copy to terraform.tfvars
+├── docker-compose.yml            # Local MySQL + DynamoDB Local E2E environment
+├── docs/
+│   └── validation-report.md      # Full E2E validation report
 └── .gitignore                    # Excludes secrets and Terraform state
 ```
 
